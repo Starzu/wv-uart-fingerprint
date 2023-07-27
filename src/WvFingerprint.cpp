@@ -329,6 +329,32 @@ bool WvFingerprint::setEigenvalue(uint16_t userId, byte eigenvalue[]) {
     return false;
 }
 
+// read eigenvalue from the device
+// eigenvalue is fixed 193 bytes
+bool WvFingerprint::readEigenvalue(byte eigenvalue[]) {
+    _setSleepMode(false);
+    _clearSerialBuffer();
+    byte cmdSend[WVFP_TXRXDATA_SIZE] = { WVFP_CMD_READ_EV, 0x00, 0x00, 0x00 };
+    byte cmdRece[WVFP_TXRXDATA_SIZE];
+
+    if (_txAndRxCmd(cmdSend, cmdRece, (_timeout*1000)+100) && cmdRece[0] == cmdSend[0]) {
+		log_e(cmdRece[3]);
+        if (cmdRece[3] == WVFP_ACK_SUCCESS) {
+            // receive data packet
+            if (!_rxEigenvalue(eigenvalue)) {
+                log_e("failed download eigenvalue");
+            } else {
+				return true;
+			}
+        } else {
+            _lastError = cmdRece[3];
+            log_e("cannot get eigenvalue");
+        }
+    }
+
+    return false;
+}
+
 // returns the last error code
 uint8_t WvFingerprint::getLastError() {
     return _lastError;

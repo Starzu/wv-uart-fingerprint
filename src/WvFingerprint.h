@@ -33,6 +33,7 @@
 #define WVFP_CMD_DEL               0x04
 #define WVFP_CMD_DEL_ALL           0x05
 #define WVFP_CMD_USER_CNT          0x09
+#define WVFP_CMD_READ_EV           0x23
 #define WVFP_CMD_COM_LEV           0x28
 #define WVFP_CMD_GET_EV            0x31
 #define WVFP_CMD_SET_EV            0x41
@@ -63,6 +64,7 @@ class WvFingerprint {
         uint16_t checkForFingerprint();
         bool getEigenvalue(uint16_t userId, byte eigenvalue[]);
         bool setEigenvalue(uint16_t userId, byte eigenvalue[]);
+        bool readEigenvalue(byte eigenvalue[]);
         bool getImage(byte &image);
         uint8_t getLastError();
 
