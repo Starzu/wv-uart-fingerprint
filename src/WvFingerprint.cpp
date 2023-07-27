@@ -379,6 +379,9 @@ bool WvFingerprint::_rxCmd(byte response[]) {
             for (uint8_t i = 0; i < WVFP_TXRXDATA_SIZE; i++) {
                 response[i] = _cmdReceiverBuffer[i+1];
             }
+            for (uint8_t i = 0; i < WVFP_TXRXBUFFER_SIZE; i++) {
+                _cmdReceiverBuffer[i] = 0;
+            }
             return true;
         } else {
             log_e("invalid checksum");
