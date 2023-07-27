@@ -32,10 +32,10 @@ bool WvFingerprint::clearAllUser() {
     bool success = false;
     _setSleepMode(false);
     _clearSerialBuffer();
-    if (_txAndRxCmd(cmdSend, cmdRece, 100) && cmdRece[0] == WVFP_CMD_COM_LEV && cmdRece[3] == WVFP_ACK_SUCCESS) {
+    if (_txAndRxCmd(cmdSend, cmdRece, 100) && cmdRece[0] == WVFP_CMD_DEL_ALL && cmdRece[3] == WVFP_ACK_SUCCESS) {
         success = true;
     } else {
-        log_e("cannot get compare level");
+        log_e("cannot clear all users data");
     }
 
     _setSleepMode(true);
@@ -98,12 +98,12 @@ uint32_t WvFingerprint::getSerialNumber() {
 // returns the number of user
 // Fingerprint capacity: 500
 uint16_t WvFingerprint::getUserCount() {
-    byte cmdSend[WVFP_TXRXDATA_SIZE] = {  WVFP_CMD_SERIALNO };
+    byte cmdSend[WVFP_TXRXDATA_SIZE] = {  WVFP_CMD_USER_CNT };
     byte cmdRece[WVFP_TXRXDATA_SIZE];
     uint16_t userCnt = 0;
     _setSleepMode(false);
     _clearSerialBuffer();
-    if (_txAndRxCmd(cmdSend, cmdRece, 100) && cmdRece[0] == WVFP_CMD_SERIALNO && cmdRece[3] == WVFP_ACK_SUCCESS) {
+    if (_txAndRxCmd(cmdSend, cmdRece, 100) && cmdRece[0] == WVFP_CMD_USER_CNT && cmdRece[3] == WVFP_ACK_SUCCESS) {
         userCnt = cmdRece[1];
         userCnt = userCnt << 8;
         userCnt = userCnt | cmdRece[2];
@@ -219,33 +219,30 @@ bool WvFingerprint::setAddMode(bool allowFpRepeats) {
 // no finger present: return 0
 // finger present but error: 0xFFFF
 uint16_t WvFingerprint::checkForFingerprint() {
-    if (digitalRead(_wakePin) == HIGH) {
-        byte cmdSend[WVFP_TXRXDATA_SIZE] = {  WVFP_CMD_MATCH };
-        byte cmdRece[WVFP_TXRXDATA_SIZE];
-        uint16_t userId;
+	byte cmdSend[WVFP_TXRXDATA_SIZE] = {  WVFP_CMD_MATCH };
+	byte cmdRece[WVFP_TXRXDATA_SIZE];
+	uint16_t userId = 0;
 
-        _setSleepMode(false);
-        _clearSerialBuffer();
-        if (_txAndRxCmd(cmdSend, cmdRece, (_timeout*1000)+100) && cmdRece[0] == cmdSend[0]) {
-            if (cmdRece[3] == WVFP_ACK_GUEST_USER || cmdRece[3] == WVFP_ACK_MASTER_USER || cmdRece[3] == WVFP_ACK_NORMAL_USER) {
-                userId = cmdRece[1];
-                userId = userId << 8;
-                userId = userId | cmdRece[2];
+	_setSleepMode(false);
+	_clearSerialBuffer();
+	if (_txAndRxCmd(cmdSend, cmdRece, (_timeout*1000)+100) && cmdRece[0] == cmdSend[0]) {
+		if (cmdRece[3] == WVFP_ACK_GUEST_USER || cmdRece[3] == WVFP_ACK_MASTER_USER || cmdRece[3] == WVFP_ACK_NORMAL_USER) {
+			userId = cmdRece[1];
+			userId = userId << 8;
+			userId = userId | cmdRece[2];
 
-            } else {
-                _lastError = cmdRece[3];
-                userId = 0xFFFF;
-            }
-        } else {
-            _lastError = cmdRece[3];
-            userId = 0xFFFF;
-            log_e("cannot get fingerprint");
-        }
+		} else {
+			_lastError = cmdRece[3];
+			userId = 0xFFFF;
+		}
+	} else {
+		_lastError = cmdRece[3];
+		userId = 0xFFFF;
+		log_e("cannot get fingerprint");
+	}
 
-        _setSleepMode(true);
-        return userId;
-    }
-    return 0;
+	_setSleepMode(true);
+	return userId;
 }
 
 // download eigenvalue from the device
