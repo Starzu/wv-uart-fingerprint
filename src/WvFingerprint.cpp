@@ -1,16 +1,27 @@
 #include <Arduino.h>
 #include "WvFingerprint.h"
 
-WvFingerprint::WvFingerprint(HardwareSerial &sr, uint8_t rstPin, uint8_t wakePin) {
-    _rstPin = rstPin;
-    _wakePin = wakePin;
-    pinMode(_rstPin, OUTPUT);
-    pinMode(_wakePin, INPUT);
-    _setSleepMode(true);
+void log_e(String s) {
+	Serial.println(s);
+}
 
+void log_e(int s) {
+	Serial.println(s);
+}
+
+WvFingerprint::WvFingerprint(HardwareSerial &sr, uint8_t rstPin = 0) {
+    _rstPin = rstPin;
     _serial = &sr;
+	_lastError = 0;
+    if (_rstPin != 0) pinMode(_rstPin, OUTPUT);
+    _setSleepMode(true);
+};
+
+void WvFingerprint::init(uint8_t timeout, bool allowFpRepeats) {
     _serial->begin(19200);
     delay(100);
+	setTimeout(timeout);
+	setAddMode(allowFpRepeats);
     _timeout = getTimeout();
 };
 
@@ -186,6 +197,23 @@ bool WvFingerprint::setTimeout(uint8_t newTimeout) {
     return timeout == newTimeout;
 }
 
+// sets the add fingerprint mode
+bool WvFingerprint::setAddMode(bool allowFpRepeats) {
+    byte cmdSend[WVFP_TXRXDATA_SIZE] = {  WVFP_CMD_ADD_MODE, allowFpRepeats ? 0x00 : 0x01, 0x00, 0x00 };
+    byte cmdRece[WVFP_TXRXDATA_SIZE];
+    _setSleepMode(false);
+    _clearSerialBuffer();
+    if (_txAndRxCmd(cmdSend, cmdRece, 100) && cmdRece[0] == WVFP_CMD_ADD_MODE && cmdRece[3] == WVFP_ACK_SUCCESS) {
+		_setSleepMode(true);
+		return true;
+    } else {
+        _lastError = cmdRece[3];
+        log_e("cannot set add mode");
+		_setSleepMode(true);
+		return false;
+    }
+}
+
 // check if there is a fingerprint available
 // if yes, return the userId (1-500)
 // no finger present: return 0
@@ -331,10 +359,12 @@ void WvFingerprint::_clearSerialBuffer() {
 
 // true = sleep mode, false = active
 void WvFingerprint::_setSleepMode(bool sleep) {
-    digitalWrite(_rstPin, sleep ? 0 : 1);
-    if (!sleep) {
-        delay(10); // give time to wake up
-    }
+    if (_rstPin != 0) {
+		digitalWrite(_rstPin, sleep ? 0 : 1);
+		if (!sleep) {
+			delay(10); // give time to wake up
+		}
+	}
 }
 
 void WvFingerprint::_txCmd(byte commands[]) {

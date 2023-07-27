@@ -9,6 +9,8 @@
 #define WVFP_ACK_FAIL              0x01
 #define WVFP_ACK_FULL              0x04
 #define WVFP_ACK_NO_USER           0x05
+#define WVFP_ACK_USER_EXIST        0x06
+#define WVFP_ACK_FIN_EXIST         0x07
 #define WVFP_ACK_TIMEOUT           0x08
 #define WVFP_ACK_GO_OUT            0x0F     // The center of the fingerprint is out of alignment with sensor
 
@@ -35,6 +37,7 @@
 #define WVFP_CMD_GET_EV            0x31
 #define WVFP_CMD_SET_EV            0x41
 #define WVFP_CMD_LP_MODE           0x2C
+#define WVFP_CMD_ADD_MODE          0x2D
 #define WVFP_CMD_TIMEOUT           0x2E
 #define WVFP_CMD_FINGER_DETECTED   0x14
 
@@ -46,13 +49,15 @@
 class WvFingerprint {
 
     public:
-        WvFingerprint(HardwareSerial &sr, uint8_t rstPin, uint8_t wakePin);
+        WvFingerprint(HardwareSerial &sr, uint8_t rstPin = 0);
+		void init(uint8_t timeout, bool allowFpRepeats);
         uint32_t getSerialNumber();
         uint8_t getCompareLevel(); // Get Compare Level
         bool setCompareLevel(uint8_t compareLevel); // Set Compare Level
         uint16_t getUserCount(); // Get user Count
         uint8_t getTimeout();
         bool setTimeout(uint8_t timeout);
+        bool setAddMode(bool allowFpRepeats);
         bool clearAllUser();
         bool addUser(uint16_t userId, uint8_t step);
         uint16_t checkForFingerprint();
@@ -66,7 +71,6 @@ class WvFingerprint {
         byte _cmdSendBuffer[WVFP_TXRXBUFFER_SIZE]; // Senden-Buffer
         byte _cmdReceiverBuffer[WVFP_TXRXBUFFER_SIZE]; // Empfangen-Buffer
         uint8_t _rstPin;
-        uint8_t _wakePin;
         uint8_t _lastError;
         uint8_t _timeout; // timeout in sekunden (0-255)
 
